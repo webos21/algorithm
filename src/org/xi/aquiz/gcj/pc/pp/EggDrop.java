@@ -1,5 +1,7 @@
 package org.xi.aquiz.gcj.pc.pp;
 
+import java.util.Arrays;
+
 import org.xi.aquiz.model.AQModel;
 import org.xi.aquiz.util.AQBufferedReader;
 import org.xi.aquiz.util.AQDataWriter;
@@ -89,9 +91,38 @@ public class EggDrop implements AQModel {
 	 */
 	@Override
 	public void aqRun(String dataPath) {
+		genCache();
 		parseData(dataPath);
 		processData();
 		generateResult(dataPath);
+	}
+
+	private static final long MAX_F_VALUE = 4294967296l;
+	private static final int LARGE_F_VALUE = -1;
+	private static final int MAX_B_INDEX = 32;
+
+	private static final int F_CACHE_SIZE = 100000;
+
+	private long[][] cacheFmax;
+
+	private void genCache() {
+		cacheFmax = new long[F_CACHE_SIZE][MAX_B_INDEX];
+		Arrays.fill(cacheFmax[0], 1);
+		for (int d = 1; d < F_CACHE_SIZE; d++) {
+			cacheFmax[d][0] = d + 1;
+			for (int b = 1; b < MAX_B_INDEX; b++) {
+				if ((cacheFmax[d - 1][b] == LARGE_F_VALUE)
+						|| (cacheFmax[d - 1][b - 1] == LARGE_F_VALUE)) {
+					cacheFmax[d][b] = LARGE_F_VALUE;
+				} else {
+					cacheFmax[d][b] = cacheFmax[d - 1][b] + 1
+							+ cacheFmax[d - 1][b - 1];
+					if (cacheFmax[d][b] >= MAX_F_VALUE) {
+						cacheFmax[d][b] = LARGE_F_VALUE;
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -122,48 +153,40 @@ public class EggDrop implements AQModel {
 			return result;
 		}
 
-		private long getMaxF(int F, int D, int B) {
-			if (D < B) {
-				throw new IllegalArgumentException("D < B!!!!!!!!");
+		private long getMaxF(int D, int B) {
+			if (B > MAX_B_INDEX) {
+				B = MAX_B_INDEX;
 			}
-			long ret = 0;
-			int expn = D - 1;
-			for (int i = 0; i < B; i++) {
-				ret += (1 << expn);
-				expn--;
+			if (B == 1) {
+				return D;
 			}
-			if ((D - B) > 0) {
-				for (int i = 0; i < (D - B); i++) {
-					ret -= (1 << i);
+			if (D > F_CACHE_SIZE) {
+				return -1;
+			}
+			return cacheFmax[D - 1][B - 1];
+		}
+
+		private int getMinD(long F, int B, int maxD) {
+			for (int d = 1; d <= maxD; d++) {
+				long maxF = getMaxF(d, B);
+				if ((maxF == LARGE_F_VALUE) || (maxF >= F)) {
+					return d;
 				}
 			}
-			return ret;
+			throw new IllegalStateException(String.format(
+					"D not found, F=%1$d, B=%2$d, Dmax=%3$d", F, B, maxD));
+
 		}
 
-		private int getMinD(int F, int B, int x) {
-			// if we have only one egg, then the error is same as floors
-			if (B == 1) {
-				return F;
+		private int getMinB(long F, int D, int maxB) {
+			for (int b = 1; b <= maxB; b++) {
+				long maxF = getMaxF(D, b);
+				if ((maxF == LARGE_F_VALUE) || (maxF >= F)) {
+					return b;
+				}
 			}
-
-			// find the x : (F < x ^ B)
-			int t = 1;
-			for (int i = 1; i < B; i++) {
-				t *= x;
-			}
-			if (t > F) {
-				return x;
-			} else {
-				// recursive-call
-				return getMinD(F, B, (x + 1));
-			}
-		}
-
-		private int getMinB(int F, int D) {
-			int modFD = F % D;
-			int divFD = F / D;
-			int ret = (modFD > 0) ? (divFD + 1) : divFD;
-			return ret;
+			throw new IllegalStateException(String.format(
+					"B not found, F=%1$d, D=%2$d, max B=%3$d", F, D, maxB));
 		}
 
 		@Override
@@ -177,22 +200,19 @@ public class EggDrop implements AQModel {
 			sb.append("origB=").append(origB).append('\n');
 
 			// Get maxF
-			maxF = getMaxF(origF, origD, origB);
+			maxF = getMaxF(origD, origB);
 			sb.append("         Fmax = ").append(maxF).append('\n');
 
 			// Get minD
-			minD = getMinD(origF, origB, 1);
+			minD = getMinD(origF, origB, origD);
 			sb.append("         Dmin = ").append(minD).append('\n');
 
 			// Get minB
-			minB = getMinB(origF, origD);
+			minB = getMinB(origF, origD, origB);
 			sb.append("         Bmin = ").append(minB).append('\n');
 
 			// set the result
-			result = (maxF >= 4294967296L || maxF < 0) ? "-1 " : Long
-					.toString(maxF) + " ";
-			result += minD + " ";
-			result += minB;
+			result = String.format("%1$d %2$d %3$d", maxF, minD, minB);
 
 			// print out the logs
 			sb.append('\n');
