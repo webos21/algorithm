@@ -110,6 +110,10 @@ public class ShoppingPlan implements AQModel {
 		generateResult(dataPath);
 	}
 
+	public interface Position {
+		public int[] getPosition();
+	}
+
 	/**
 	 * the class of game object
 	 */
@@ -122,6 +126,8 @@ public class ShoppingPlan implements AQModel {
 
 		private Store[] stores;
 		private String[] shoppingList;
+
+		private double[][] dpResult;
 
 		private String result;
 
@@ -144,9 +150,23 @@ public class ShoppingPlan implements AQModel {
 		}
 
 		public void setShoppingList(String slist) {
-			shoppingList = slist.split(" ");
-			if (shoppingList == null || shoppingList.length != numItems) {
+			String[] tmp = slist.split(" ");
+			if (tmp == null || tmp.length != numItems) {
 				throw new IllegalArgumentException("wrong shopping list!!");
+			}
+			int cpos = 0;
+			shoppingList = new String[tmp.length];
+			for (String item : tmp) {
+				if (!item.endsWith("!")) {
+					shoppingList[cpos] = item;
+					cpos++;
+				}
+			}
+			for (String item : tmp) {
+				if (item.endsWith("!")) {
+					shoppingList[cpos] = item;
+					cpos++;
+				}
 			}
 		}
 
@@ -154,10 +174,117 @@ public class ShoppingPlan implements AQModel {
 			stores[idx] = new Store(idx, shoppingList, sstr);
 		}
 
+		public double calcDistance(Position a, Position b) {
+			int[] aPos = a.getPosition();
+			int[] bPos = b.getPosition();
+
+			int xDiff = (aPos[0] >= bPos[0]) ? (aPos[0] - bPos[0])
+					: (bPos[0] - aPos[0]);
+			int yDiff = (aPos[1] >= bPos[1]) ? (aPos[1] - bPos[1])
+					: (bPos[1] - aPos[1]);
+
+			return Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
+		}
+
+		public ShoppingNode getMinPriceStore(String[] items, ShoppingNode prev) {
+			int storeIdx = -1;
+			double minPrice = 9999999;
+			String retItem = null;
+			ShoppingNode home = new ShoppingNode(null, null, null);
+			for (int i = 0; i < stores.length; i++) {
+				Store store = stores[i];
+				for (String item : items) {
+					int itemPrice = store.getItemPrice(item);
+					if (itemPrice > 0) {
+						double totalPrice = calcDistance(prev, store)
+								* gasPrice + itemPrice;
+						if (item.endsWith("!")) {
+							// perishable item : must go home
+							if (i + 1 < stores.length) {
+								totalPrice += calcDistance(store, home)
+										+ calcDistance(home, stores[i + 1]);
+							} else if (i - 1 >= 0) {
+								totalPrice += calcDistance(store, home)
+										+ calcDistance(home, stores[i - 1]);
+							} else {
+								totalPrice += calcDistance(store, home) * 2;
+							}
+						}
+						if (minPrice >= totalPrice) {
+							storeIdx = store.getStoreNo();
+							minPrice = totalPrice;
+							retItem = item;
+						}
+					}
+				}
+			}
+			return new ShoppingNode(prev, stores[storeIdx], retItem);
+		}
+
+		public ShoppingNode getMinPriceStore(String item, ShoppingNode prev) {
+			int storeIdx = -1;
+			double minPrice = 9999999;
+			String retItem = null;
+			for (int i = 0; i < stores.length; i++) {
+				Store store = stores[i];
+				int itemPrice = store.getItemPrice(item);
+				if (itemPrice > 0) {
+					double totalPrice = calcDistance(prev, store) * gasPrice
+							+ itemPrice;
+					if (minPrice >= totalPrice) {
+						storeIdx = store.getStoreNo();
+						minPrice = totalPrice;
+						retItem = item;
+					}
+				}
+			}
+			return new ShoppingNode(prev, stores[storeIdx], retItem);
+		}
+
+		public double calcShoppingPrice(List<ShoppingNode> snList) {
+			double accDist = 0;
+			double accItemPrice = 0;
+
+			ShoppingNode prev = null;
+			for (ShoppingNode node : snList) {
+				if (prev != null) {
+					accDist += calcDistance(prev, node);
+					accItemPrice += node.getItemPrice();
+				}
+				prev = node;
+			}
+			return accItemPrice + (accDist * gasPrice);
+		}
+
+		public String[] dropItemOnSList(String[] src, String delItem) {
+			if (src == null) {
+				return null;
+			}
+			if (delItem == null) {
+				return src;
+			}
+			String tmp = AQMisc.mergeArray(src, " ");
+			tmp = tmp.replaceAll(delItem, "");
+			tmp = tmp.replaceAll("  ", " ");
+			tmp = tmp.trim();
+			return tmp.split(" ");
+		}
+
 		@Override
 		public void run() {
 			StringBuilder sb = new StringBuilder();
-			List<String> tarr = new ArrayList<String>();
+
+			List<ShoppingNode> snGreedy = new ArrayList<ShoppingNode>();
+
+			List<ShoppingNode>[] snByItem = new List[shoppingList.length];
+			for (int i = 0; i < shoppingList.length; i++) {
+				snByItem[i] = new ArrayList<ShoppingNode>();
+			}
+
+			double[] retSnByItem = new double[shoppingList.length];
+			double retGreedy = 0;
+
+			double minTotal = 0;
 
 			// the summary of Game-Case
 			sb.append("Case #").append(caseNo).append(": ");
@@ -170,103 +297,149 @@ public class ShoppingPlan implements AQModel {
 			}
 			sb.append('\n');
 
-			// make a decision tree
-			List<ShoppingNode> pathList = new ArrayList<ShoppingNode>();
-			for (Store store : stores) {
-				for (String item : shoppingList) {
-					if (store.isBuyable(item)) {
-						tarr.add(item);
+			// first, add home position
+			ShoppingNode home = new ShoppingNode(null, null, null);
+			ShoppingNode prev = null;
+
+			// change the sequence of buying items
+			for (int i = 0; i < shoppingList.length; i++) {
+				String[] sitems = new String[shoppingList.length];
+				System.arraycopy(shoppingList, i, sitems, 0,
+						shoppingList.length - i);
+				System.arraycopy(shoppingList, 0, sitems, shoppingList.length
+						- i, i);
+				for (int j = 0; j < sitems.length; j++) {
+					System.out.print(sitems[j] + " ");
+				}
+				System.out.print('\n');
+
+				// add home first and reset previous
+				snByItem[i].add(home);
+				prev = home;
+				for (String item : sitems) {
+					ShoppingNode minNode = getMinPriceStore(item, prev);
+					snByItem[i].add(minNode);
+					prev = minNode;
+					if (minNode.getItem().endsWith("!")) {
+						snByItem[i].add(home);
+						prev = home;
 					}
 				}
-				ShoppingNode sn = new ShoppingNode(store.getStoreNo(),
-						tarr.toArray(new String[0]));
-				pathList.add(sn);
-				tarr.clear();
+				// check and add home position
+				if (prev != home) {
+					snByItem[i].add(home);
+				}
+				// result price
+				retSnByItem[i] = calcShoppingPrice(snByItem[i]);
+				// check minTotal
+				if (minTotal == 0) {
+					minTotal = retSnByItem[i];
+				} else {
+					minTotal = Math.min(minTotal, retSnByItem[i]);
+				}
 			}
 
+			// greedily buy items
+			do {
+				snGreedy.add(home);
+				prev = home;
+				String[] csn = shoppingList;
+				for (int i = 0; i < shoppingList.length; i++) {
+					ShoppingNode minNode = getMinPriceStore(csn, prev);
+					snGreedy.add(minNode);
+					prev = minNode;
+					if (minNode.getItem().endsWith("!")) {
+						snGreedy.add(home);
+						prev = home;
+					}
+					csn = dropItemOnSList(csn, minNode.getItem());
+				}
+				// greedy : last, add home position
+				if (prev != home) {
+					snGreedy.add(home);
+				}
+				// result price
+				retGreedy = calcShoppingPrice(snGreedy);
+				// check minTotal
+				minTotal = Math.min(minTotal, retGreedy);
+			} while (false);
+
+			// result price
+			result = String.format("%.7f", minTotal);
+
 			// check the list
-			sb.append(pathList);
+			// for (int i = 0; i < shoppingList.length; i++) {
+			// sb.append("\n         snByItem[").append(i).append("] Cost=");
+			// sb.append(String.format("%.7f", retSnByItem[i]));
+			// sb.append(", Path=").append(snByItem[i]);
+			// }
+			// do {
+			// sb.append("\n         Greedy Cost=");
+			// sb.append(String.format("%.7f", retGreedy));
+			// sb.append(", Path=").append(snGreedy);
+			// } while (false);
+
+			// log the price of path
+			sb.append("\n         Result = ").append(result);
 
 			// print out the logs
 			sb.append('\n');
 			System.out.println(sb);
 		}
 
-		private class ShoppingNode {
-			private int storeNo;
-			private String[] items;
+		private class ShoppingNode implements Position {
+			private ShoppingNode prevNode;
 
-			public ShoppingNode(int storeId, String[] buyItems) {
-				this.storeNo = storeId;
-				this.items = buyItems;
+			private Store store;
+			private String item;
+
+			public ShoppingNode(ShoppingNode prev, Store s, String i) {
+				prevNode = prev;
+				store = s;
+				item = i;
 			}
 
-			public int getStoreNo() {
-				return storeNo;
+			public Store getStore() {
+				return store;
 			}
 
-			public String[] getItems() {
-				return items;
+			public String getItem() {
+				return item;
 			}
 
-			@Override
-			public boolean equals(Object o) {
-				// compare the type of instance
-				if (!(o instanceof ShoppingNode)) {
-					return false;
+			public int getItemPrice() {
+				if (store == null || item == null) {
+					return 0;
 				}
-				// cast the type
-				ShoppingNode cmp = (ShoppingNode) o;
-				// compare the storeNo
-				if (cmp.storeNo != this.storeNo) {
-					return false;
-				}
-				// compare the length of items
-				if (cmp.items.length != this.items.length) {
-					return false;
-				}
-				// compare the contents of items
-				for (int i = 0; i < this.items.length; i++) {
-					if (this.items[i] != null
-							&& !this.items[i].equals(cmp.items[i])) {
-						return false;
-					}
-				}
-				return true;
+				return store.getItemPrice(item);
 			}
 
 			@Override
-			public int hashCode() {
-				// set the default value
-				final int PRIME = 31;
-				int result = 1;
-				// add [storeNo]
-				result = (result * PRIME) + storeNo;
-				// add the length of [items]
-				result = (result * PRIME) + items.length;
-				// add the contents of [items]
-				for (String item : items) {
-					result = (result * PRIME)
-							+ ((item == null) ? 0 : item.hashCode());
+			public int[] getPosition() {
+				if (store == null) {
+					return new int[] { 0, 0 };
+				} else {
+					return store.getPosition();
 				}
-				return result;
 			}
 
 			@Override
 			public String toString() {
+				int[] pos = getPosition();
 				StringBuilder sb = new StringBuilder();
-				sb.append("ShoppingNode : Store=").append(storeNo);
-				sb.append(", items={");
-				sb.append(items[0]);
-				for (int i = 1; i < items.length; i++) {
-					sb.append(",").append(items[i]);
+				sb.append("\nShoppingNode:Store=");
+				if (store == null) {
+					sb.append("home");
+				} else {
+					sb.append(store.getStoreNo());
 				}
-				sb.append("}");
+				sb.append("(x=").append(pos[0]).append(",y=").append(pos[1]);
+				sb.append(")/Item=").append(item);
 				return sb.toString();
 			}
 		}
 
-		private class Store {
+		private class Store implements Position {
 			private int storeNo;
 
 			private int posX;
@@ -291,6 +464,11 @@ public class ShoppingPlan implements AQModel {
 				return storeNo;
 			}
 
+			@Override
+			public int[] getPosition() {
+				return new int[] { posX, posY };
+			}
+
 			public boolean isBuyable(String buyItem) {
 				for (StoreItem item : items) {
 					if (buyItem.startsWith(item.getName())) {
@@ -298,6 +476,15 @@ public class ShoppingPlan implements AQModel {
 					}
 				}
 				return false;
+			}
+
+			public int getItemPrice(String buyItem) {
+				for (StoreItem item : items) {
+					if (buyItem.startsWith(item.getName())) {
+						return item.getPrice();
+					}
+				}
+				return -1;
 			}
 
 			@Override
