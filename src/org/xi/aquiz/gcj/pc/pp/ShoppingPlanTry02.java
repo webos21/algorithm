@@ -165,10 +165,8 @@ public class ShoppingPlanTry02 implements AQModel {
 			int[] aPos = a.getPosition();
 			int[] bPos = b.getPosition();
 
-			int xDiff = (aPos[0] >= bPos[0]) ? (aPos[0] - bPos[0])
-					: (bPos[0] - aPos[0]);
-			int yDiff = (aPos[1] >= bPos[1]) ? (aPos[1] - bPos[1])
-					: (bPos[1] - aPos[1]);
+			int xDiff = aPos[0] - bPos[0];
+			int yDiff = aPos[1] - bPos[1];
 
 			return Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
 		}
