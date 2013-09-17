@@ -11,6 +11,7 @@ import java.util.Set;
 
 public class Engine {
 
+	@SuppressWarnings("unused")
 	private final List<Vertex> nodes;
 	private final List<Edge> edges;
 

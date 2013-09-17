@@ -1,9 +1,12 @@
 package org.xi.aquiz.gcj.pc.pp;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
+import java.util.Queue;
 
 import org.xi.aquiz.model.AQModel;
 import org.xi.aquiz.util.AQBufferedReader;
@@ -59,8 +62,11 @@ public class ShoppingPlan implements AQModel {
 			lstr = gbr.readLine();
 			gameCases[i].setShoppingList(lstr);
 
+			// add home as a store
+			gameCases[i].addStore(0, "0 0");
+
 			// get and add the store list
-			for (j = 0; j < gameCases[i].getNumStores(); j++) {
+			for (j = 1; j < gameCases[i].getNumStores(); j++) {
 				lstr = gbr.readLine();
 				gameCases[i].addStore(j, lstr);
 			}
@@ -131,20 +137,18 @@ public class ShoppingPlan implements AQModel {
 		private Store[] stores;
 		private String[] shoppingList;
 
-		private ShoppingNode homeNode;
-
 		private String result;
+
+		private final static boolean debugLog = false;
 
 		public GameBean(int cn, String ni, String ns, String pg) {
 			this.caseNo = cn;
 
 			numItems = Integer.parseInt(ni);
-			numStores = Integer.parseInt(ns);
+			numStores = Integer.parseInt(ns) + 1;
 			gasPrice = Integer.parseInt(pg);
 
 			stores = new Store[numStores];
-
-			homeNode = new ShoppingNode(null, null);
 		}
 
 		public String getResult() {
@@ -166,161 +170,199 @@ public class ShoppingPlan implements AQModel {
 			stores[idx] = new Store(idx, shoppingList, sstr);
 		}
 
-		private double calcDistance(Position a, Position b) {
-			int aX = (a == null) ? 0 : a.getX();
-			int aY = (a == null) ? 0 : a.getY();
+		private final double EPS = 1e-10;
 
-			int bX = (b == null) ? 0 : b.getX();
-			int bY = (b == null) ? 0 : b.getY();
+		private double measureGraph() {
+			int nItems = shoppingList.length;
+			int nStores = stores.length;
+			int itemLastIdx = (1 << nItems) - 1;
 
-			int xDiff = aX - bX;
-			int yDiff = aY - bY;
+			// initialize the result-array
+			double[][] costArray = new double[nStores][(1 << nItems)];
 
-			return Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
-		}
+			for (int s = 0; s < nStores; s++) {
+				for (int n = 0; n < 1 << nItems; n++) {
+					costArray[s][n] = 1e100;
+				}
+			}
 
-		private ShoppingNode getMinPriceStore(String[] items, ShoppingNode prev) {
-			int storeIdx = -1;
-			double minPrice = 9999999;
-			String retItem = null;
-			ShoppingNode home = new ShoppingNode(null, null);
-			for (int i = 0; i < stores.length; i++) {
-				Store store = stores[i];
-				for (String item : items) {
-					double itemPrice = store.getItemPrice(item);
+			double[] cheapCost = new double[nItems];
+			Arrays.fill(cheapCost, 1e100);
+			for (int i = 1; i < nStores; i++) {
+				double moveCost = stores[i].getDistance(0, 0) * 2 * gasPrice;
+				for (int j = 0; j < nItems; j++) {
+					double itemPrice = stores[i].getItemPrice(shoppingList[j]);
 					if (itemPrice > 0) {
-						double totalPrice = calcDistance(prev, store)
-								* gasPrice + itemPrice;
-						if (item.endsWith("!")) {
-							// perishable item : must go home
-							if (i + 1 < stores.length) {
-								totalPrice += calcDistance(store, home)
-										+ calcDistance(home, stores[i + 1]);
-							} else if (i - 1 >= 0) {
-								totalPrice += calcDistance(store, home)
-										+ calcDistance(home, stores[i - 1]);
-							} else {
-								totalPrice += calcDistance(store, home) * 2;
+						double totalCost = moveCost + itemPrice;
+						cheapCost[j] = Math.min(cheapCost[j], totalCost);
+					}
+				}
+			}
+
+			double initTotalCost = 0.0;
+			for (int i = 0; i < nItems; i++) {
+				initTotalCost += cheapCost[i];
+			}
+
+			costArray[0][itemLastIdx] = initTotalCost;
+
+			for (int i = 1; i < nStores; i++) {
+				for (int j = 0; j < nItems; j++) {
+					double itemPrice = stores[i].getItemPrice(shoppingList[j]);
+					if (itemPrice > cheapCost[j]) {
+						stores[i].removeItem(shoppingList[j]);
+					}
+				}
+			}
+
+			costArray[0][0] = 0.0;
+			Queue<Stock> pq = new PriorityQueue<Stock>();
+			pq.add(new Stock(0.0, 0, 0, 0, -1));
+
+			while (!pq.isEmpty()) {
+				Stock s = pq.poll();
+
+				if (debugLog) {
+					System.out.println(String.format(
+							"Examining Stock(%.7f, %d, %d, %d, %d)", s.spent,
+							s.mask, s.loc, s.bct, s.cf));
+				}
+
+				if (costArray[0][itemLastIdx] <= s.spent) {
+					if (debugLog) {
+						System.out
+								.println(String
+										.format("costArray[0][itemLastIdx](%.7f) <= s.spent(%.7f)",
+												costArray[0][itemLastIdx],
+												s.spent));
+					}
+					continue;
+				}
+
+				if (costArray[s.loc][s.mask] < s.spent) {
+					if (debugLog) {
+						System.out
+								.println(String
+										.format("costArray[s.loc][s.mask](%.7f) < s.spent(%.7f)",
+												costArray[s.loc][s.mask],
+												s.spent));
+					}
+					continue;
+				}
+
+				if (s.loc != 0) {
+					Store aStore = stores[s.loc];
+					List<Integer> stk = new ArrayList<Integer>();
+					for (int i = 0; i < shoppingList.length; i++) {
+						double itemPrice = aStore.getItemPrice(shoppingList[i]);
+						if (debugLog) {
+							System.out.println("itemPrice=" + itemPrice
+									+ " / s.mask=" + s.mask + " / i=" + i
+									+ " / ((s.mask >> i) & 0x01)="
+									+ ((s.mask >> i) & 0x01));
+						}
+						// store do not sale the item
+						if (itemPrice > 0.0 && ((s.mask >> i) & 0x01) == 0) {
+							if (debugLog) {
+								System.out.println("added item = " + i);
+							}
+							stk.add(i);
+						}
+					}
+					if (stk.isEmpty()) {
+						continue;
+					}
+
+					int n = 1 << stk.size();
+					for (int m = 1; m < n; m++) {
+						double cost = s.spent;
+						int nm = s.mask;
+						int pr = 0;
+						int nct = s.bct;
+						for (int i = 0; (m >> i) > 0; i++) {
+							if (((m >> i) & 1) > 0) {
+								String itemName = shoppingList[stk.get(i)];
+								cost += aStore.getItemPrice(itemName);
+								nm |= 1 << stk.get(i);
+								nct++;
+								if (itemName.endsWith("!")) {
+									pr++;
+								}
 							}
 						}
-						if (minPrice >= totalPrice) {
-							storeIdx = store.getStoreNo();
-							minPrice = totalPrice;
-							retItem = item;
+						if (costArray[s.loc][nm] < cost + EPS) {
+							continue;
+						}
+
+						if (pr != 0) {
+							double gc = aStore.getDistance(0, 0) * gasPrice
+									+ cost;
+							if (costArray[0][nm] > gc + EPS) {
+								costArray[0][nm] = gc;
+								pq.add(new Stock(gc, nm, 0, nct, s.loc));
+								if (debugLog) {
+									System.out
+											.println(String
+													.format(" Push Stock(%.7f, %d, %d, %d, %d)",
+															gc, nm, 0, nct,
+															s.loc));
+								}
+							}
+						} else {
+							costArray[s.loc][nm] = cost;
+							for (int i = 0; i < nStores; i++) {
+								if (s.loc == i) {
+									continue;
+								}
+								double gc = stores[i].getDistance(aStore)
+										* gasPrice + cost;
+								if (costArray[i][nm] > gc + EPS) {
+									costArray[i][nm] = gc;
+									pq.add(new Stock(gc, nm, i, nct, s.loc));
+									if (debugLog) {
+										System.out
+												.println(String
+														.format(" Push Stock(%.7f, %d, %d, %d, %d)",
+																gc, nm, i, nct,
+																s.loc));
+									}
+								}
+							}
+						}
+					}
+				} else {
+					for (int i = 1; i < nStores; i++) {
+						double gc = stores[i].getDistance(0, 0) * gasPrice
+								+ s.spent;
+						if (costArray[i][s.mask] > gc + EPS) {
+							costArray[i][s.mask] = gc;
+							pq.add(new Stock(gc, s.mask, i, s.bct, 0));
+							if (debugLog) {
+								System.out.println(String.format(
+										" Push Stock(%.7f, %d, %d, %d, %d)",
+										gc, s.mask, i, s.bct, 0));
+							}
 						}
 					}
 				}
 			}
-			return new ShoppingNode(stores[storeIdx], retItem);
-		}
 
-		private ShoppingNode getMinPriceStore(String item, ShoppingNode prev) {
-			int storeIdx = -1;
-			double minPrice = 9999999;
-			String retItem = null;
-			for (int i = 0; i < stores.length; i++) {
-				Store store = stores[i];
-				double itemPrice = store.getItemPrice(item);
-				if (itemPrice > 0) {
-					double totalPrice = calcDistance(prev, store) * gasPrice
-							+ itemPrice;
-					if (minPrice >= totalPrice) {
-						storeIdx = store.getStoreNo();
-						minPrice = totalPrice;
-						retItem = item;
+			if (debugLog) {
+				StringBuilder sb = new StringBuilder();
+
+				sb.append("\n         costArray = ").append('\n');
+				for (int i = 0; i < nStores; i++) {
+					for (int j = 0; j < (itemLastIdx + 1); j++) {
+						sb.append(String.format("%10.7f ", costArray[i][j]));
 					}
+					sb.append('\n');
 				}
-			}
-			return new ShoppingNode(stores[storeIdx], retItem);
-		}
-
-		private double calcShoppingPrice(List<ShoppingNode> snList) {
-			double accDist = 0;
-			double accItemPrice = 0;
-
-			ShoppingNode prev = null;
-			for (ShoppingNode node : snList) {
-				if (prev != null) {
-					accDist += calcDistance(prev, node);
-					accItemPrice += node.getItemPrice();
-				}
-				prev = node;
-			}
-			return accItemPrice + (accDist * gasPrice);
-		}
-
-		private String[] dropItemOnSList(String[] src, String delItem) {
-			if (src == null) {
-				return null;
-			}
-			if (delItem == null) {
-				return src;
-			}
-			final String[] strArr = new String[0];
-			List<String> items = new ArrayList<String>();
-			for (String item : src) {
-				if (!item.equals(delItem)) {
-					items.add(item);
-				}
-			}
-			return items.toArray(strArr);
-		}
-
-		private ShoppingPath doPhaseConstruction() {
-			ShoppingPath snPath = new ShoppingPath();
-
-			// first, add home position
-			snPath.addNode(homeNode);
-
-			// start with the full shopping-list
-			String[] csn = shoppingList;
-
-			// iterate the shopping items
-			for (int i = 0; i < shoppingList.length; i++) {
-				ShoppingNode minNode = getMinPriceStore(csn,
-						snPath.getPrevNode());
-				snPath.addNode(minNode);
-				if (minNode.getItem().endsWith("!")) {
-					snPath.addNode(homeNode);
-				}
-				csn = dropItemOnSList(csn, minNode.getItem());
+				System.out.print(sb);
+				System.out.println(String.format("         Case #%d: %.7f",
+						caseNo, costArray[0][itemLastIdx]));
 			}
 
-			// last, add home position
-			if (snPath.getPrevNode() != homeNode) {
-				snPath.addNode(homeNode);
-			}
-
-			return snPath;
-		}
-
-		private ShoppingPath doPhaseMarketDrop(ShoppingPath sp,
-				List<ShoppingPath> spList) {
-			ShoppingPath tmp = new ShoppingPath(sp);
-
-			return tmp;
-		}
-
-		private ShoppingPath doPhaseMarketAdd(ShoppingPath sp,
-				List<ShoppingPath> spList) {
-			ShoppingPath tmp = new ShoppingPath(sp);
-
-			return tmp;
-
-		}
-
-		private ShoppingPath doPhaseMarketExchange(ShoppingPath sp,
-				List<ShoppingPath> spList) {
-			ShoppingPath tmp = new ShoppingPath(sp);
-
-			return tmp;
-		}
-
-		private ShoppingPath doPhaseOptimizePath(ShoppingPath sp,
-				List<ShoppingPath> spList) {
-			ShoppingPath tmp = new ShoppingPath(sp);
-
-			return tmp;
+			return costArray[0][itemLastIdx];
 		}
 
 		@Override
@@ -338,150 +380,51 @@ public class ShoppingPlan implements AQModel {
 			}
 			sb.append('\n');
 
-			// create the list of the shopping-path to be dumped
-			List<ShoppingPath> spList = new ArrayList<ShoppingPath>();
+			// dijkstra-algorithm
+			double retVal = measureGraph();
 
-			// create the base shopping-path by greedy methods
-			ShoppingPath sp = doPhaseConstruction();
-
-			// log the first path
-			sb.append("[Construction Phase]\n");
-			sb.append(" - Result Path");
-			sb.append(sp);
-			sb.append("\n - Dump Path\n   ");
-			sb.append(spList.toString());
-
-			// optimize the shopping-path by Market-Drop
-			sp = doPhaseMarketDrop(sp, spList);
-
-			// optimize the shopping-path by Market-Add
-			sp = doPhaseMarketAdd(sp, spList);
-
-			// optimize the shopping-path by Market-Exchange
-			sp = doPhaseMarketExchange(sp, spList);
-
-			// optimize the shopping-path by Renaud-Method
-			sp = doPhaseOptimizePath(sp, spList);
+			// check the store items after run
+			if (debugLog) {
+				sb.append("\n         Stores = ");
+				for (int i = 0; i < stores.length; i++) {
+					sb.append("\n              ").append(stores[i]);
+				}
+				sb.append('\n');
+			}
 
 			// log the price of path
-			result = String.format("%.7f", sp.getTotalPrice());
-			sb.append("\n         Result = ").append(result);
+			result = String.format("%.7f", retVal);
+			sb.append("         Result = ").append(result);
 
 			// print out the logs
 			sb.append('\n');
 			System.out.println(sb);
 		}
 
-		private class ShoppingPath {
-			private double totalPrice;
+		private class Stock implements Comparable<Stock> {
+			double spent;
+			int bct;
+			int loc;
+			int cf;
+			int mask;
 
-			private ShoppingNode prevNode;
-			private List<ShoppingNode> snList;
-
-			public ShoppingPath() {
-				totalPrice = 0;
-				prevNode = null;
-				snList = new ArrayList<ShoppingNode>();
-			}
-
-			// constructor for copying
-			public ShoppingPath(ShoppingPath sp) {
-				this.totalPrice = sp.totalPrice;
-				this.prevNode = sp.prevNode;
-				this.snList = new ArrayList<ShoppingNode>(sp.snList);
-			}
-
-			public double getTotalPrice() {
-				return totalPrice;
-			}
-
-			public ShoppingNode getPrevNode() {
-				return prevNode;
-			}
-
-			public double reCalc() {
-				totalPrice = calcShoppingPrice(snList);
-				return totalPrice;
-			}
-
-			public void addNode(ShoppingNode sn) {
-				double dist = calcDistance(prevNode, sn);
-				totalPrice += sn.getItemPrice() + (dist * gasPrice);
-				snList.add(sn);
-				prevNode = sn;
+			public Stock(double sp, int m, int l, int b, int c) {
+				spent = sp;
+				mask = m;
+				loc = l;
+				bct = b;
+				cf = c;
 			}
 
 			@Override
-			public String toString() {
-				final ShoppingNode[] nullArr = new ShoppingNode[0];
-				StringBuilder sb = new StringBuilder();
-				sb.append("\n   ShoppingPath: price=");
-				sb.append(this.totalPrice);
-				sb.append(", path=[");
-				for (ShoppingNode sn : snList) {
-					sb.append("\n                 ");
-					sb.append(sn.toString()).append(",");
-				}
-				sb.deleteCharAt(sb.length() - 1);
-				sb.append("\n                 ]");
-				return sb.toString();
-			}
-		}
-
-		private class ShoppingNode implements Position {
-			private Store store;
-			private String item;
-
-			public ShoppingNode(Store s, String i) {
-				store = s;
-				item = i;
-			}
-
-			public Store getStore() {
-				return store;
-			}
-
-			public String getItem() {
-				return item;
-			}
-
-			public double getItemPrice() {
-				if (store == null || item == null) {
-					return 0;
-				}
-				return store.getItemPrice(item);
-			}
-
-			@Override
-			public int getX() {
-				if (store == null) {
+			public int compareTo(Stock other) {
+				if (this.spent < other.spent) {
+					return -1;
+				} else if (this.spent == other.spent) {
 					return 0;
 				} else {
-					return store.getX();
+					return 1;
 				}
-			}
-
-			@Override
-			public int getY() {
-				if (store == null) {
-					return 0;
-				} else {
-					return store.getY();
-				}
-			}
-
-			@Override
-			public String toString() {
-				StringBuilder sb = new StringBuilder();
-				sb.append("ShoppingNode:Store=");
-				if (store == null) {
-					sb.append("home");
-				} else {
-					sb.append(store.getStoreNo());
-				}
-				sb.append("(x=").append(getX()).append(",y=").append(getY());
-				sb.append(")/Item=").append(item);
-				return sb.toString();
 			}
 		}
 
@@ -552,24 +495,6 @@ public class ShoppingPlan implements AQModel {
 			}
 
 			/**
-			 * Does the store has a required item?
-			 * 
-			 * @param buyItem
-			 *            it must be a string in shopping-list
-			 * @return If the required item is in store, it will return
-			 *         <code>true</code>, otherwise it will return
-			 *         <code>false</code>.
-			 */
-			public boolean isBuyable(String buyItem) {
-				Integer price = itemMap.get(buyItem);
-				if (price == null) {
-					return false;
-				} else {
-					return true;
-				}
-			}
-
-			/**
 			 * Get the price of the item in this store
 			 * 
 			 * @param buyItem
@@ -587,26 +512,49 @@ public class ShoppingPlan implements AQModel {
 			}
 
 			/**
-			 * Get the price of the items in this store
+			 * Get the distance from the position (x, y)
 			 * 
-			 * @param buyItem
-			 *            it must be a string-array in shopping-list
-			 * @return If the required item is in store, it will return the sum
-			 *         of item prices, otherwise it will return 0.
+			 * @param x
+			 *            x-axis position
+			 * @param y
+			 *            y-axis position
+			 * 
+			 * @return the distance of store from the given position (x, y)
 			 */
-			public double getItemPrice(String[] buyItems) {
-				double retPrice = 0;
-				for (String iname : buyItems) {
-					retPrice += getItemPrice(iname);
-				}
-				return retPrice;
+			public double getDistance(int x, int y) {
+				int xDiff = posX - x;
+				int yDiff = posY - y;
+
+				return Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
+			}
+
+			/**
+			 * Get the distance from the other store
+			 * 
+			 * @param other
+			 *            the other store
+			 * 
+			 * @return the distance of store from the given store
+			 */
+			public double getDistance(Store other) {
+				int x = (other == null) ? 0 : other.getX();
+				int y = (other == null) ? 0 : other.getY();
+
+				int xDiff = posX - x;
+				int yDiff = posY - y;
+
+				return Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
+			}
+
+			public void removeItem(String itemName) {
+				itemMap.remove(itemName);
 			}
 
 			@Override
 			public String toString() {
 				StringBuilder sb = new StringBuilder();
 
-				sb.append("Store[").append(storeNo).append("] : ");
+				sb.append("Store[").append(getStoreNo()).append("] : ");
 				sb.append("x=").append(posX);
 				sb.append(", y=").append(posY);
 				sb.append(", items={");
@@ -614,7 +562,9 @@ public class ShoppingPlan implements AQModel {
 					sb.append(item.getKey()).append('(');
 					sb.append(item.getValue()).append("),");
 				}
-				sb.deleteCharAt(sb.length() - 1);
+				if (sb.charAt(sb.length() - 1) == ',') {
+					sb.deleteCharAt(sb.length() - 1);
+				}
 				sb.append("}");
 				return sb.toString();
 			}
