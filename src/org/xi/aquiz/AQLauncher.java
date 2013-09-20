@@ -1,5 +1,6 @@
 package org.xi.aquiz;
 
+import org.xi.aquiz.gcj.cjb2008.TriangleTrilemma;
 import org.xi.aquiz.gcj.pc.pp.AlienNumbers;
 import org.xi.aquiz.gcj.pc.pp.AlwaysTurnLeft;
 import org.xi.aquiz.gcj.pc.pp.EggDrop;
@@ -74,6 +75,11 @@ public class AQLauncher {
 		sp.aqRun(dataPath);
 	}
 
+	public static void PC_CJB2008_TriangleTrilemma(String dataPath) {
+		TriangleTrilemma tt = new TriangleTrilemma();
+		tt.aqRun(dataPath);
+	}
+
 	public static void main(String[] args) {
 		if (sbBuf == null) {
 			sbBuf = new StringBuilder();
@@ -88,8 +94,7 @@ public class AQLauncher {
 		// Profiling
 		// Profiling(args[0]);
 
-		// PC_PP_EggDrop(args[0]);
-		PC_PP_ShoppingPlan(args[0]);
+		PC_CJB2008_TriangleTrilemma(args[0]);
 	}
 
 }

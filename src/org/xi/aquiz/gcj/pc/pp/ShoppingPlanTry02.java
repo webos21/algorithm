@@ -171,76 +171,6 @@ public class ShoppingPlanTry02 implements AQModel {
 			return Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
 		}
 
-		private ShoppingNode getMinPriceStore(String[] items, ShoppingNode prev) {
-			int storeIdx = -1;
-			double minPrice = 9999999;
-			String retItem = null;
-			ShoppingNode home = new ShoppingNode(null, null, null);
-			for (int i = 0; i < stores.length; i++) {
-				Store store = stores[i];
-				for (String item : items) {
-					double itemPrice = store.getItemPrice(item);
-					if (itemPrice > 0) {
-						double totalPrice = calcDistance(prev, store)
-								* gasPrice + itemPrice;
-						if (item.endsWith("!")) {
-							// perishable item : must go home
-							if (i + 1 < stores.length) {
-								totalPrice += calcDistance(store, home)
-										+ calcDistance(home, stores[i + 1]);
-							} else if (i - 1 >= 0) {
-								totalPrice += calcDistance(store, home)
-										+ calcDistance(home, stores[i - 1]);
-							} else {
-								totalPrice += calcDistance(store, home) * 2;
-							}
-						}
-						if (minPrice >= totalPrice) {
-							storeIdx = store.getStoreNo();
-							minPrice = totalPrice;
-							retItem = item;
-						}
-					}
-				}
-			}
-			return new ShoppingNode(prev, stores[storeIdx], retItem);
-		}
-
-		private ShoppingNode getMinPriceStore(String item, ShoppingNode prev) {
-			int storeIdx = -1;
-			double minPrice = 9999999;
-			String retItem = null;
-			for (int i = 0; i < stores.length; i++) {
-				Store store = stores[i];
-				double itemPrice = store.getItemPrice(item);
-				if (itemPrice > 0) {
-					double totalPrice = calcDistance(prev, store) * gasPrice
-							+ itemPrice;
-					if (minPrice >= totalPrice) {
-						storeIdx = store.getStoreNo();
-						minPrice = totalPrice;
-						retItem = item;
-					}
-				}
-			}
-			return new ShoppingNode(prev, stores[storeIdx], retItem);
-		}
-
-		private double calcShoppingPrice(List<ShoppingNode> snList) {
-			double accDist = 0;
-			double accItemPrice = 0;
-
-			ShoppingNode prev = null;
-			for (ShoppingNode node : snList) {
-				if (prev != null) {
-					accDist += calcDistance(prev, node);
-					accItemPrice += node.getItemPrice();
-				}
-				prev = node;
-			}
-			return accItemPrice + (accDist * gasPrice);
-		}
-
 		private String[] dropItemOnSList(String[] src, String delItem) {
 			if (src == null) {
 				return null;
@@ -313,7 +243,7 @@ public class ShoppingPlanTry02 implements AQModel {
 			dpResult = new double[totalItems][totalStores];
 
 			// home position
-			ShoppingNode home = new ShoppingNode(null, null, null);
+			ShoppingNode home = new ShoppingNode(null, null);
 
 			// fill (0, 0)
 			dpResult[0][0] = 0;
@@ -382,30 +312,12 @@ public class ShoppingPlanTry02 implements AQModel {
 		}
 
 		private class ShoppingNode implements Position {
-			private ShoppingNode prevNode;
-
 			private Store store;
 			private String item;
 
-			public ShoppingNode(ShoppingNode prev, Store s, String i) {
-				prevNode = prev;
+			public ShoppingNode(Store s, String i) {
 				store = s;
 				item = i;
-			}
-
-			public Store getStore() {
-				return store;
-			}
-
-			public String getItem() {
-				return item;
-			}
-
-			public double getItemPrice() {
-				if (store == null || item == null) {
-					return 0;
-				}
-				return store.getItemPrice(item);
 			}
 
 			@Override
@@ -463,6 +375,7 @@ public class ShoppingPlanTry02 implements AQModel {
 				return new int[] { posX, posY };
 			}
 
+			@SuppressWarnings("unused")
 			public boolean isBuyable(String buyItem) {
 				for (StoreItem item : items) {
 					if (buyItem.startsWith(item.getName())) {
@@ -481,6 +394,7 @@ public class ShoppingPlanTry02 implements AQModel {
 				return Double.POSITIVE_INFINITY;
 			}
 
+			@SuppressWarnings("unused")
 			public double getItemPrice(String[] buyItems) {
 				double retPrice = 0;
 				for (String iname : buyItems) {
@@ -534,6 +448,7 @@ public class ShoppingPlanTry02 implements AQModel {
 				return name;
 			}
 
+			@SuppressWarnings("unused")
 			public boolean isPerishable() {
 				return perishable;
 			}

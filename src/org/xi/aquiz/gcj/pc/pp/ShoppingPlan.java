@@ -170,6 +170,10 @@ public class ShoppingPlan implements AQModel {
 			stores[idx] = new Store(idx, shoppingList, sstr);
 		}
 
+		private void log(String msg) {
+			System.out.println(msg);
+		}
+
 		private final double EPS = 1e-10;
 
 		private double measureGraph() {
@@ -186,8 +190,11 @@ public class ShoppingPlan implements AQModel {
 				}
 			}
 
+			// Initialize the cheap-cost array
 			double[] cheapCost = new double[nItems];
-			Arrays.fill(cheapCost, 1e100);
+			Arrays.fill(cheapCost, 1e100); // fill the value (10^100)
+
+			// Retrieve and compare the (item-cost + (store-distance*2))
 			for (int i = 1; i < nStores; i++) {
 				double moveCost = stores[i].getDistance(0, 0) * 2 * gasPrice;
 				for (int j = 0; j < nItems; j++) {
@@ -199,13 +206,20 @@ public class ShoppingPlan implements AQModel {
 				}
 			}
 
+			// Simple sum of the cheap-cost
 			double initTotalCost = 0.0;
 			for (int i = 0; i < nItems; i++) {
 				initTotalCost += cheapCost[i];
 			}
 
+			// Set the simple sum to result-value
 			costArray[0][itemLastIdx] = initTotalCost;
+			if (debugLog) {
+				log("!!simple sum of the cheap-cost list = " + initTotalCost);
+			}
 
+			// remove the worst price items on stores
+			// (compare the item-cost with the list of cheap cost)
 			for (int i = 1; i < nStores; i++) {
 				for (int j = 0; j < nItems; j++) {
 					double itemPrice = stores[i].getItemPrice(shoppingList[j]);
@@ -215,132 +229,155 @@ public class ShoppingPlan implements AQModel {
 				}
 			}
 
+			// print the items of stores after removing
+			if (debugLog) {
+				log("!!after removing the worst items on stores :");
+				for (int i = 1; i < nStores; i++) {
+					log("  " + stores[i]);
+				}
+				log("---------------------------------------------");
+			}
+
 			costArray[0][0] = 0.0;
 			Queue<Stock> pq = new PriorityQueue<Stock>();
 			pq.add(new Stock(0.0, 0, 0, 0, -1));
 
 			while (!pq.isEmpty()) {
+				// get a stock from the priority-queue
 				Stock s = pq.poll();
 
 				if (debugLog) {
-					System.out.println(String.format(
-							"Examining Stock(%.7f, %d, %d, %d, %d)", s.spent,
-							s.mask, s.loc, s.bct, s.cf));
+					log(String.format("Examining Stock(%.7f, %d, %d, %d, %d)",
+							s.accSpent, s.itemMask, s.storeIdx, s.runCount,
+							s.prevStoreIdx));
 				}
 
-				if (costArray[0][itemLastIdx] <= s.spent) {
+				if (costArray[0][itemLastIdx] <= s.accSpent) {
 					if (debugLog) {
-						System.out
-								.println(String
-										.format("costArray[0][itemLastIdx](%.7f) <= s.spent(%.7f)",
-												costArray[0][itemLastIdx],
-												s.spent));
+						log(String
+								.format("  continue : total cost(%.7f) is lower than this stock(%.7f)",
+										costArray[0][itemLastIdx], s.accSpent));
+					}
+					continue;
+				}
+				if (costArray[s.storeIdx][s.itemMask] < s.accSpent) {
+					if (debugLog) {
+						log(String
+								.format("  continue : previous result(%.7f) is lower than this stock(%.7f)",
+										costArray[s.storeIdx][s.itemMask],
+										s.accSpent));
 					}
 					continue;
 				}
 
-				if (costArray[s.loc][s.mask] < s.spent) {
-					if (debugLog) {
-						System.out
-								.println(String
-										.format("costArray[s.loc][s.mask](%.7f) < s.spent(%.7f)",
-												costArray[s.loc][s.mask],
-												s.spent));
+				if (s.storeIdx == 0) { // Home
+					for (int storeIdx = 1; storeIdx < nStores; storeIdx++) {
+						double gc = stores[storeIdx].getDistance(0, 0)
+								* gasPrice + s.accSpent;
+						if (costArray[storeIdx][s.itemMask] > gc + EPS) {
+							costArray[storeIdx][s.itemMask] = gc;
+							pq.add(new Stock(gc, s.itemMask, storeIdx,
+									s.runCount, s.storeIdx));
+							if (debugLog) {
+								log(String
+										.format(" Push Stock(%.7f, %d, %d, %d, %d) for Home position",
+												gc, s.itemMask, storeIdx,
+												s.runCount, s.storeIdx));
+							}
+						} else {
+							if (debugLog) {
+								log(String
+										.format("  skip : previous result(%.7f) is lower than new cost(%.7f)",
+												costArray[storeIdx][s.itemMask],
+												(gc + EPS)));
+							}
+						}
 					}
-					continue;
-				}
-
-				if (s.loc != 0) {
-					Store aStore = stores[s.loc];
-					List<Integer> stk = new ArrayList<Integer>();
+				} else { // a Store
+					Store aStore = stores[s.storeIdx];
+					List<Integer> cmpItems = new ArrayList<Integer>();
 					for (int i = 0; i < shoppingList.length; i++) {
 						double itemPrice = aStore.getItemPrice(shoppingList[i]);
-						if (debugLog) {
-							System.out.println("itemPrice=" + itemPrice
-									+ " / s.mask=" + s.mask + " / i=" + i
-									+ " / ((s.mask >> i) & 0x01)="
-									+ ((s.mask >> i) & 0x01));
-						}
-						// store do not sale the item
-						if (itemPrice > 0.0 && ((s.mask >> i) & 0x01) == 0) {
+						// which items are in aStore and the item is NOT masked
+						if (itemPrice > 0.0 && ((s.itemMask >> i) & 0x01) == 0) {
 							if (debugLog) {
-								System.out.println("added item = " + i);
+								log("  add the not-masked buyable item[" + i
+										+ "] = " + shoppingList[i]);
 							}
-							stk.add(i);
+							cmpItems.add(i);
 						}
 					}
-					if (stk.isEmpty()) {
+					if (cmpItems.isEmpty()) {
+						if (debugLog) {
+							log("  continue : no items in " + aStore + ")");
+						}
 						continue;
 					}
 
-					int n = 1 << stk.size();
-					for (int m = 1; m < n; m++) {
-						double cost = s.spent;
-						int nm = s.mask;
-						int pr = 0;
-						int nct = s.bct;
+					int cmpItemMask = 1 << cmpItems.size();
+					if (debugLog) {
+						log("  cmpItemMask( 1<<stk.size() ) = " + cmpItemMask);
+					}
+					for (int m = 1; m < cmpItemMask; m++) {
+						double newCost = s.accSpent;
+						int newMask = s.itemMask;
+						boolean bPerishable = false;
+						int newCount = s.runCount;
 						for (int i = 0; (m >> i) > 0; i++) {
 							if (((m >> i) & 1) > 0) {
-								String itemName = shoppingList[stk.get(i)];
-								cost += aStore.getItemPrice(itemName);
-								nm |= 1 << stk.get(i);
-								nct++;
+								String itemName = shoppingList[cmpItems.get(i)];
+								newCost += aStore.getItemPrice(itemName);
+								newMask |= 1 << cmpItems.get(i);
+								newCount++;
 								if (itemName.endsWith("!")) {
-									pr++;
+									bPerishable = true;
 								}
 							}
 						}
-						if (costArray[s.loc][nm] < cost + EPS) {
+						if (costArray[s.storeIdx][newMask] < newCost + EPS) {
+							if (debugLog) {
+								log("  continue : costArray[s.loc][newMask]("
+										+ costArray[s.storeIdx][newMask]
+										+ ") < newCost+EPS(" + newCost + EPS
+										+ ")");
+							}
 							continue;
 						}
-
-						if (pr != 0) {
+						if (bPerishable) {
 							double gc = aStore.getDistance(0, 0) * gasPrice
-									+ cost;
-							if (costArray[0][nm] > gc + EPS) {
-								costArray[0][nm] = gc;
-								pq.add(new Stock(gc, nm, 0, nct, s.loc));
+									+ newCost;
+							if (costArray[0][newMask] > gc + EPS) {
+								costArray[0][newMask] = gc;
+								pq.add(new Stock(gc, newMask, 0, newCount,
+										s.storeIdx));
 								if (debugLog) {
-									System.out
-											.println(String
-													.format(" Push Stock(%.7f, %d, %d, %d, %d)",
-															gc, nm, 0, nct,
-															s.loc));
+									log(String
+											.format(" Push Stock(%.7f, %d, %d, %d, %d) for Perishable item",
+													gc, newMask, // storeIdx=0
+													0, // continue from home
+													newCount, s.storeIdx));
 								}
 							}
 						} else {
-							costArray[s.loc][nm] = cost;
+							costArray[s.storeIdx][newMask] = newCost;
 							for (int i = 0; i < nStores; i++) {
-								if (s.loc == i) {
+								if (s.storeIdx == i) {
+									// skip this store (aStore)
 									continue;
 								}
 								double gc = stores[i].getDistance(aStore)
-										* gasPrice + cost;
-								if (costArray[i][nm] > gc + EPS) {
-									costArray[i][nm] = gc;
-									pq.add(new Stock(gc, nm, i, nct, s.loc));
+										* gasPrice + newCost;
+								if (costArray[i][newMask] > gc + EPS) {
+									costArray[i][newMask] = gc;
+									pq.add(new Stock(gc, newMask, i, newCount,
+											s.storeIdx));
 									if (debugLog) {
-										System.out
-												.println(String
-														.format(" Push Stock(%.7f, %d, %d, %d, %d)",
-																gc, nm, i, nct,
-																s.loc));
+										log(String
+												.format(" Push Stock(%.7f, %d, %d, %d, %d) for next Stores",
+														gc, newMask, i,
+														newCount, s.storeIdx));
 									}
 								}
-							}
-						}
-					}
-				} else {
-					for (int i = 1; i < nStores; i++) {
-						double gc = stores[i].getDistance(0, 0) * gasPrice
-								+ s.spent;
-						if (costArray[i][s.mask] > gc + EPS) {
-							costArray[i][s.mask] = gc;
-							pq.add(new Stock(gc, s.mask, i, s.bct, 0));
-							if (debugLog) {
-								System.out.println(String.format(
-										" Push Stock(%.7f, %d, %d, %d, %d)",
-										gc, s.mask, i, s.bct, 0));
 							}
 						}
 					}
@@ -358,8 +395,8 @@ public class ShoppingPlan implements AQModel {
 					sb.append('\n');
 				}
 				System.out.print(sb);
-				System.out.println(String.format("         Case #%d: %.7f",
-						caseNo, costArray[0][itemLastIdx]));
+				log(String.format("         Case #%d: %.7f", caseNo,
+						costArray[0][itemLastIdx]));
 			}
 
 			return costArray[0][itemLastIdx];
@@ -383,16 +420,7 @@ public class ShoppingPlan implements AQModel {
 			// dijkstra-algorithm
 			double retVal = measureGraph();
 
-			// check the store items after run
-			if (debugLog) {
-				sb.append("\n         Stores = ");
-				for (int i = 0; i < stores.length; i++) {
-					sb.append("\n              ").append(stores[i]);
-				}
-				sb.append('\n');
-			}
-
-			// log the price of path
+			// log the result price of path
 			result = String.format("%.7f", retVal);
 			sb.append("         Result = ").append(result);
 
@@ -402,25 +430,26 @@ public class ShoppingPlan implements AQModel {
 		}
 
 		private class Stock implements Comparable<Stock> {
-			double spent;
-			int bct;
-			int loc;
-			int cf;
-			int mask;
+			double accSpent;
+			int itemMask;
+			int storeIdx;
+			int runCount;
+			int prevStoreIdx;
 
-			public Stock(double sp, int m, int l, int b, int c) {
-				spent = sp;
-				mask = m;
-				loc = l;
-				bct = b;
-				cf = c;
+			public Stock(double dSpent, int nMask, int nStore, int rCount,
+					int prevStore) {
+				this.accSpent = dSpent;
+				this.itemMask = nMask;
+				this.storeIdx = nStore;
+				this.runCount = rCount;
+				this.prevStoreIdx = prevStore;
 			}
 
 			@Override
 			public int compareTo(Stock other) {
-				if (this.spent < other.spent) {
+				if (this.accSpent < other.accSpent) {
 					return -1;
-				} else if (this.spent == other.spent) {
+				} else if (this.accSpent == other.accSpent) {
 					return 0;
 				} else {
 					return 1;

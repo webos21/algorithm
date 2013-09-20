@@ -214,6 +214,7 @@ public class ShoppingPlanTry03 implements AQModel {
 			return new ShoppingNode(stores[storeIdx], retItem);
 		}
 
+		@SuppressWarnings("unused")
 		private ShoppingNode getMinPriceStore(String item, ShoppingNode prev) {
 			int storeIdx = -1;
 			double minPrice = 9999999;
@@ -399,6 +400,7 @@ public class ShoppingPlanTry03 implements AQModel {
 				return prevNode;
 			}
 
+			@SuppressWarnings("unused")
 			public double reCalc() {
 				totalPrice = calcShoppingPrice(snList);
 				return totalPrice;
@@ -413,7 +415,6 @@ public class ShoppingPlanTry03 implements AQModel {
 
 			@Override
 			public String toString() {
-				final ShoppingNode[] nullArr = new ShoppingNode[0];
 				StringBuilder sb = new StringBuilder();
 				sb.append("\n   ShoppingPath: price=");
 				sb.append(this.totalPrice);
@@ -435,10 +436,6 @@ public class ShoppingPlanTry03 implements AQModel {
 			public ShoppingNode(Store s, String i) {
 				store = s;
 				item = i;
-			}
-
-			public Store getStore() {
-				return store;
 			}
 
 			public String getItem() {
@@ -560,6 +557,7 @@ public class ShoppingPlanTry03 implements AQModel {
 			 *         <code>true</code>, otherwise it will return
 			 *         <code>false</code>.
 			 */
+			@SuppressWarnings("unused")
 			public boolean isBuyable(String buyItem) {
 				Integer price = itemMap.get(buyItem);
 				if (price == null) {
@@ -594,6 +592,7 @@ public class ShoppingPlanTry03 implements AQModel {
 			 * @return If the required item is in store, it will return the sum
 			 *         of item prices, otherwise it will return 0.
 			 */
+			@SuppressWarnings("unused")
 			public double getItemPrice(String[] buyItems) {
 				double retPrice = 0;
 				for (String iname : buyItems) {

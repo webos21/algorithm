@@ -186,7 +186,7 @@ public class ShoppingPlanTry01 implements AQModel {
 			int storeIdx = -1;
 			double minPrice = 9999999;
 			String retItem = null;
-			ShoppingNode home = new ShoppingNode(null, null, null);
+			ShoppingNode home = new ShoppingNode(null, null);
 			for (int i = 0; i < stores.length; i++) {
 				Store store = stores[i];
 				for (String item : items) {
@@ -214,14 +214,14 @@ public class ShoppingPlanTry01 implements AQModel {
 					}
 				}
 			}
-			return new ShoppingNode(prev, stores[storeIdx], retItem);
+			return new ShoppingNode(stores[storeIdx], retItem);
 		}
 
 		private ShoppingNode getMinPriceStore(String item, ShoppingNode prev) {
 			int storeIdx = -1;
 			double minPrice = 9999999;
 			String retItem = null;
-			ShoppingNode home = new ShoppingNode(null, null, null);
+			ShoppingNode home = new ShoppingNode(null, null);
 			for (int i = 0; i < stores.length; i++) {
 				Store store = stores[i];
 				int itemPrice = store.getItemPrice(item);
@@ -239,7 +239,7 @@ public class ShoppingPlanTry01 implements AQModel {
 					}
 				}
 			}
-			return new ShoppingNode(prev, stores[storeIdx], retItem);
+			return new ShoppingNode(stores[storeIdx], retItem);
 		}
 
 		private double calcShoppingPrice(List<ShoppingNode> snList) {
@@ -294,7 +294,7 @@ public class ShoppingPlanTry01 implements AQModel {
 			sb.append('\n');
 
 			// first, add home position
-			ShoppingNode home = new ShoppingNode(null, null, null);
+			ShoppingNode home = new ShoppingNode(null, null);
 			ShoppingNode prev = null;
 
 			// change the sequence of buying items
@@ -391,19 +391,13 @@ public class ShoppingPlanTry01 implements AQModel {
 		}
 
 		private class ShoppingNode implements Position {
-			private ShoppingNode prevNode;
 
 			private Store store;
 			private String item;
 
-			public ShoppingNode(ShoppingNode prev, Store s, String i) {
-				prevNode = prev;
+			public ShoppingNode(Store s, String i) {
 				store = s;
 				item = i;
-			}
-
-			public Store getStore() {
-				return store;
 			}
 
 			public String getItem() {
@@ -472,6 +466,7 @@ public class ShoppingPlanTry01 implements AQModel {
 				return new int[] { posX, posY };
 			}
 
+			@SuppressWarnings("unused")
 			public boolean isBuyable(String buyItem) {
 				for (StoreItem item : items) {
 					if (buyItem.startsWith(item.getName())) {
@@ -535,6 +530,7 @@ public class ShoppingPlanTry01 implements AQModel {
 				return name;
 			}
 
+			@SuppressWarnings("unused")
 			public boolean isPerishable() {
 				return perishable;
 			}
