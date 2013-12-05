@@ -40,17 +40,17 @@ public class ShoppingPlan implements AQModel {
 		int j;
 
 		// create the reader of input-data
-		AQBufferedReader gbr = new AQBufferedReader(dataPath);
+		AQBufferedReader aqbr = new AQBufferedReader(dataPath);
 
 		// get the size of data-set
-		lstr = gbr.readLine();
+		lstr = aqbr.readLine();
 		setNum = Integer.parseInt(lstr);
 
 		// create the cases of games
 		gameCases = new GameBean[setNum];
 		for (i = 0; setNum > 0; i++, setNum--) {
 			// get game info
-			lstr = gbr.readLine();
+			lstr = aqbr.readLine();
 			String[] gi = lstr.split(" ");
 
 			// make a game case
@@ -59,7 +59,7 @@ public class ShoppingPlan implements AQModel {
 			}
 
 			// get and set the shopping list
-			lstr = gbr.readLine();
+			lstr = aqbr.readLine();
 			gameCases[i].setShoppingList(lstr);
 
 			// add home as a store
@@ -67,13 +67,13 @@ public class ShoppingPlan implements AQModel {
 
 			// get and add the store list
 			for (j = 1; j < gameCases[i].getNumStores(); j++) {
-				lstr = gbr.readLine();
+				lstr = aqbr.readLine();
 				gameCases[i].addStore(j, lstr);
 			}
 		}
 
 		// close the reader of input-data
-		gbr.close();
+		aqbr.close();
 	}
 
 	/**
@@ -94,15 +94,15 @@ public class ShoppingPlan implements AQModel {
 	 */
 	private void generateResult(String dataPath) {
 		// create the writer of output-data
-		AQDataWriter gdw = new AQDataWriter(AQMisc.getResultFilePath(dataPath));
+		AQDataWriter aqdw = new AQDataWriter(AQMisc.getResultFilePath(dataPath));
 
 		// write the result string to file
 		for (int i = 0; i < gameCases.length; i++) {
-			gdw.writeln("Case #" + (i + 1) + ": " + gameCases[i].getResult());
+			aqdw.writeln("Case #" + (i + 1) + ": " + gameCases[i].getResult());
 		}
 
 		// close the writer of output-data
-		gdw.close();
+		aqdw.close();
 	}
 
 	/**

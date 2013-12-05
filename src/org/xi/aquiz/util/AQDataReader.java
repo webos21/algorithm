@@ -5,19 +5,29 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 /**
- * GCJDataReader : No call of System.arrayCopy()
- * 
- * The size of input file is less than 200kb
+ * AQDataReader : No call of System.arrayCopy()
+ * <p>
+ * The size of input file is less than 200kb <br/>
  * (http://code.google.com/codejam/problem-preparation.html)
+ * </p>
+ * <p>
+ * If the file size is greater than 200kb, you must check the variables -
+ * <code>AQ_DR_BUFFER_SIZE</code>, <code>AQ_DR_BUFFER_LAST</code>.
+ * </p>
+ * 
+ * @author Cheolmin Jo (webos21@gmail.com)
+ * 
+ * @deprecated This class is not used because of performance issue. Use the
+ *             <code>AQBufferedReader</code>.
  */
 public class AQDataReader {
-	private static final int GCJ_DR_BUFFER_SIZE = 32768;
-	private static final int GCJ_DR_BUFFER_LAST = 32767;
+	private static final int AQ_DR_BUFFER_SIZE = 32768;
+	private static final int AQ_DR_BUFFER_LAST = 32767;
 
-	private static final int GCJ_DR_LINEBUF_SIZE = 8192;
+	private static final int AQ_DR_LINEBUF_SIZE = 8192;
 
-	private static final int GCJ_DR_THRESHHOLD = 8192;
-	private static final int GCJ_DR_READ_SIZE = 16384;
+	private static final int AQ_DR_THRESHHOLD = 8192;
+	private static final int AQ_DR_READ_SIZE = 16384;
 
 	private String filePath;
 
@@ -43,8 +53,8 @@ public class AQDataReader {
 	private byte[] lineBuf;
 
 	public AQDataReader(String dataPath) {
-		this.dataBuf = new byte[GCJ_DR_BUFFER_SIZE];
-		this.lineBuf = new byte[GCJ_DR_LINEBUF_SIZE];
+		this.dataBuf = new byte[AQ_DR_BUFFER_SIZE];
+		this.lineBuf = new byte[AQ_DR_LINEBUF_SIZE];
 
 		this.filePath = dataPath;
 
@@ -64,15 +74,15 @@ public class AQDataReader {
 		int reqSize = 0;
 		int retSize = 0;
 
-		if (fileSize < filePos + GCJ_DR_READ_SIZE) {
+		if (fileSize < filePos + AQ_DR_READ_SIZE) {
 			reqSize = fileSize - filePos;
 			fileEOF = true;
 		} else {
-			reqSize = GCJ_DR_READ_SIZE;
+			reqSize = AQ_DR_READ_SIZE;
 		}
 
-		if (dataBufWPos + reqSize > GCJ_DR_BUFFER_SIZE) {
-			int cutSize = GCJ_DR_BUFFER_SIZE - dataBufWPos;
+		if (dataBufWPos + reqSize > AQ_DR_BUFFER_SIZE) {
+			int cutSize = AQ_DR_BUFFER_SIZE - dataBufWPos;
 			try {
 				retSize = fileIS.read(dataBuf, dataBufWPos, cutSize);
 				retSize += fileIS.read(dataBuf, 0, reqSize - cutSize);
@@ -108,16 +118,16 @@ public class AQDataReader {
 
 		while (dataBuf[ePos] != '\n' && dataBuf[ePos] != '\r') {
 			lineBuf[rLen++] = dataBuf[ePos];
-			ePos = (ePos == GCJ_DR_BUFFER_LAST) ? 0 : ePos + 1;
+			ePos = (ePos == AQ_DR_BUFFER_LAST) ? 0 : ePos + 1;
 		}
 
 		String ret = new String(lineBuf, 0, rLen);
 
 		// Skip the remained - '\n' or '\r'
-		ePos = (ePos == GCJ_DR_BUFFER_LAST) ? 0 : ePos + 1;
+		ePos = (ePos == AQ_DR_BUFFER_LAST) ? 0 : ePos + 1;
 		rLen++;
 		if (dataBuf[ePos] == '\n' || dataBuf[ePos] == '\r') {
-			ePos = (ePos == GCJ_DR_BUFFER_LAST) ? 0 : ePos + 1;
+			ePos = (ePos == AQ_DR_BUFFER_LAST) ? 0 : ePos + 1;
 			rLen++;
 		}
 
@@ -126,7 +136,7 @@ public class AQDataReader {
 
 		readLen += rLen;
 
-		if (!fileEOF && dataBufLen < GCJ_DR_THRESHHOLD) {
+		if (!fileEOF && dataBufLen < AQ_DR_THRESHHOLD) {
 			loadDataBuf();
 		}
 

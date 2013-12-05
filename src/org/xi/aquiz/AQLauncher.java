@@ -7,28 +7,42 @@ import org.xi.aquiz.gcj.pc.pp.EggDrop;
 import org.xi.aquiz.gcj.pc.pp.ShoppingPlan;
 import org.xi.aquiz.test.AQBufferedReaderTest;
 
+/**
+ * Application Launcher for the algorithm quiz
+ * 
+ * @author Cheolmin Jo (webos21@gmail.com)
+ */
 public class AQLauncher {
 
-	private static final String gcjLine = "===================================\n";
-	private static final String gcjMark = "=    Google Code Jam Launcher     =\n";
+	private static final String aqlLine = "===================================\n";
+	private static final String aqlMark = "=      Algorith Quiz Launcher     =\n";
 
 	private static StringBuilder sbBuf;
 
+	/**
+	 * Print the usage message to console
+	 */
 	public static void Usage() {
 		sbBuf.delete(0, sbBuf.length());
-		sbBuf.append(gcjLine);
-		sbBuf.append(gcjMark);
-		sbBuf.append(gcjLine);
+		sbBuf.append(aqlLine);
+		sbBuf.append(aqlMark);
+		sbBuf.append(aqlLine);
 		sbBuf.append("Usage)\n");
 		sbBuf.append("java -jar CodingTest input-file.txt");
 		System.out.println(sbBuf);
 	}
 
+	/**
+	 * Print the given arguments to console
+	 * 
+	 * @param args
+	 *            the string array of the given arguments
+	 */
 	public static void CheckArgs(String[] args) {
 		sbBuf.delete(0, sbBuf.length());
-		sbBuf.append(gcjLine);
-		sbBuf.append(gcjMark);
-		sbBuf.append(gcjLine);
+		sbBuf.append(aqlLine);
+		sbBuf.append(aqlMark);
+		sbBuf.append(aqlLine);
 		sbBuf.append("Arguments)\n");
 		for (int i = 0; i < args.length; i++) {
 			sbBuf.append("args[").append(i).append("] ");
@@ -80,6 +94,12 @@ public class AQLauncher {
 		tt.aqRun(dataPath);
 	}
 
+	/**
+	 * Entry function of Application - main()
+	 * 
+	 * @param args
+	 *            the string array of the given arguments
+	 */
 	public static void main(String[] args) {
 		if (sbBuf == null) {
 			sbBuf = new StringBuilder();

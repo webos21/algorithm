@@ -31,16 +31,16 @@ public class AlienNumbers implements AQModel {
 		int i;
 
 		// create the reader of input-data
-		AQBufferedReader gbr = new AQBufferedReader(dataPath);
+		AQBufferedReader aqbr = new AQBufferedReader(dataPath);
 
 		// get the size of data-set
-		lstr = gbr.readLine();
+		lstr = aqbr.readLine();
 		setNum = Integer.parseInt(lstr);
 
 		// create the cases of games
 		gameCases = new GameBean[setNum];
 		for (i = 0; setNum > 0; i++, setNum--) {
-			lstr = gbr.readLine();
+			lstr = aqbr.readLine();
 			String[] m = lstr.split(" ");
 			if (m != null && m.length == 3) {
 				gameCases[i] = new GameBean((i + 1), m[0], m[1], m[2]);
@@ -48,7 +48,7 @@ public class AlienNumbers implements AQModel {
 		}
 
 		// close the reader of input-data
-		gbr.close();
+		aqbr.close();
 	}
 
 	/**
@@ -69,16 +69,16 @@ public class AlienNumbers implements AQModel {
 	 */
 	private void generateResult(String dataPath) {
 		// create the writer of output-data
-		AQDataWriter gdw = new AQDataWriter(
+		AQDataWriter aqdw = new AQDataWriter(
 				AQMisc.getResultFilePath(dataPath));
 
 		// write the result string to file
 		for (int i = 0; i < gameCases.length; i++) {
-			gdw.writeln("Case #" + (i + 1) + ": " + gameCases[i].getResult());
+			aqdw.writeln("Case #" + (i + 1) + ": " + gameCases[i].getResult());
 		}
 
 		// close the writer of output-data
-		gdw.close();
+		aqdw.close();
 	}
 
 	/**

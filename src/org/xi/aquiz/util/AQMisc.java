@@ -2,7 +2,19 @@ package org.xi.aquiz.util;
 
 import java.io.File;
 
+/**
+ * AQMisc : utility functions.
+ * 
+ * @author Cheolmin Jo (webos21@gmail.com)
+ */
 public class AQMisc {
+	/**
+	 * Get the path string of result-file based on the path of input-file
+	 * 
+	 * @param dataPath
+	 *            the path of input-file
+	 * @return the path string of result-file
+	 */
 	public static String getResultFilePath(String dataPath) {
 		File f = new File(dataPath);
 		if (f.exists()) {
@@ -19,6 +31,15 @@ public class AQMisc {
 		}
 	}
 
+	/**
+	 * Get the merged string of the string array by delimiter.
+	 * 
+	 * @param src
+	 *            the string array
+	 * @param delim
+	 *            the delimiter for merging
+	 * @return the merged string of string array
+	 */
 	public static String mergeArray(String[] src, String delim) {
 		if (src.length == 0) {
 			return "";
@@ -34,6 +55,15 @@ public class AQMisc {
 		}
 	}
 
+	/**
+	 * Get the merged string of the integer array by delimiter.
+	 * 
+	 * @param src
+	 *            the integer array
+	 * @param delim
+	 *            the delimiter for merging
+	 * @return the merged string of string array
+	 */
 	public static String mergeArray(int[] src, String delim) {
 		if (src.length == 0) {
 			return "";
@@ -49,6 +79,15 @@ public class AQMisc {
 		}
 	}
 
+	/**
+	 * Get the merged string of the integer-object array by delimiter.
+	 * 
+	 * @param src
+	 *            the integer-object array
+	 * @param delim
+	 *            the delimiter for merging
+	 * @return the merged string of string array
+	 */
 	public static String mergeArray(Integer[] src, String delim) {
 		if (src.length == 0) {
 			return "";
