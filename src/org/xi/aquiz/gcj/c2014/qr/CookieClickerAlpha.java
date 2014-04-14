@@ -1,7 +1,4 @@
-package org.xi.aquiz.gcj.cjb2008;
-
-import java.util.Arrays;
-import java.util.Comparator;
+package org.xi.aquiz.gcj.c2014.qr;
 
 import org.xi.aquiz.model.AQModel;
 import org.xi.aquiz.util.AQBufferedReader;
@@ -9,13 +6,13 @@ import org.xi.aquiz.util.AQDataWriter;
 import org.xi.aquiz.util.AQMisc;
 
 /**
- * Google Code Jam - Practice Contests - Code Jam Beta 2008
+ * Google Code Jam - Contest2014 - QR
  * 
- * Problem B. The Price is Wrong
+ * Problem B. Cookie Clicker Alpha
  * 
  * @author Cheolmin Jo (webos21@gmail.com)
  */
-public class ThePriceIsWrong implements AQModel {
+public class CookieClickerAlpha implements AQModel {
 
 	/**
 	 * the game objects of cases
@@ -29,7 +26,7 @@ public class ThePriceIsWrong implements AQModel {
 	 *            the path of the input-data
 	 */
 	private void parseData(String dataPath) {
-		String lstr, lstr2;
+		String lstr;
 		int setNum;
 		int i;
 
@@ -44,12 +41,9 @@ public class ThePriceIsWrong implements AQModel {
 		gameCases = new GameBean[setNum];
 		for (i = 0; setNum > 0; i++, setNum--) {
 			lstr = aqbr.readLine();
-			lstr2 = aqbr.readLine();
-			String[] products = lstr.split(" ");
-			String[] prices = lstr2.split(" ");
-			if (products != null && prices != null
-					&& products.length == prices.length) {
-				gameCases[i] = new GameBean((i + 1), products, prices);
+			String[] m = lstr.split(" ");
+			if (m != null && m.length == 3) {
+				gameCases[i] = new GameBean((i + 1), m[0], m[1], m[2]);
 			}
 		}
 
@@ -106,19 +100,13 @@ public class ThePriceIsWrong implements AQModel {
 		private int caseNo;
 		private String result;
 
-		private String products;
-		private String prices;
+		double C, F, X;
 
-		private Item[] items;
-
-		public GameBean(int cn, String[] products, String[] prices) {
+		public GameBean(int cn, String c, String f, String x) {
 			this.caseNo = cn;
-			this.products = AQMisc.mergeArray(products, " ");
-			this.prices = AQMisc.mergeArray(prices, " ");
-			this.items = new Item[products.length];
-			for (int i = 0; i < products.length; i++) {
-				items[i] = new Item(products[i], prices[i]);
-			}
+			this.C = Double.parseDouble(c);
+			this.F = Double.parseDouble(f);
+			this.X = Double.parseDouble(x);
 		}
 
 		public String getResult() {
@@ -130,47 +118,39 @@ public class ThePriceIsWrong implements AQModel {
 			StringBuilder sb = new StringBuilder();
 
 			// the summary of Game-Case
-			sb.append("Case #").append(caseNo).append(": \n");
-			sb.append("	").append(products).append("\n");
-			sb.append("	").append(prices).append("\n");
+			sb.append("Case #").append(caseNo).append(": ");
+			sb.append(C).append(' ').append(F).append(' ').append(X)
+					.append('\n');
 
-			// check the price order
-			Item[] newOrder = new Item[items.length];
-			System.arraycopy(items, 0, newOrder, 0, items.length);
-			Arrays.sort(newOrder, new SortByPrice());
+			double prevFarmSec = C / 2.0;
+			double prevTotalSec = X / 2.0;
+			double curFarmSec = 0.0;
+			double curTotalSec = 0.0;
+			sb.append('\t').append(prevFarmSec).append(' ')
+					.append(prevTotalSec).append('\n');
 
-			sb.append("Original    : ");
-			for (Item item : items) {
-				sb.append(item.name).append(" ");
+			int cnt = 1;
+			while (true) {
+				curFarmSec = prevFarmSec + C / (2.0 + cnt * F);
+				curTotalSec = prevFarmSec + X / (2.0 + cnt * F);
+
+				sb.append('\t').append(curFarmSec).append(' ')
+						.append(curTotalSec).append('\n');
+
+				if (prevTotalSec < curTotalSec) {
+					break;
+				} else {
+					prevFarmSec = curFarmSec;
+					prevTotalSec = curTotalSec;
+					cnt++;
+				}
 			}
-			sb.append("\n");
-
-			sb.append("SortByPrice : ");
-			for (Item item : newOrder) {
-				sb.append(item.name).append(" ");
-			}
-			sb.append("\n");
+			result = String.format("%.07f", prevTotalSec);
+			sb.append("\tResult : ").append(result).append('\n');
 
 			// print out the logs
 			sb.append('\n');
 			System.out.println(sb);
-		}
-
-		private class Item {
-			String name;
-			int price;
-
-			public Item(String name, String price) {
-				this.name = name;
-				this.price = Integer.parseInt(price);
-			}
-		}
-
-		private class SortByPrice implements Comparator<Item> {
-			@Override
-			public int compare(Item o1, Item o2) {
-				return (o1.price - o2.price);
-			}
 		}
 	}
 

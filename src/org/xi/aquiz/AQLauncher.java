@@ -1,5 +1,10 @@
 package org.xi.aquiz;
 
+import org.xi.aquiz.gcj.c2014.qr.CookieClickerAlpha;
+import org.xi.aquiz.gcj.c2014.qr.DeceitfulWar;
+import org.xi.aquiz.gcj.c2014.qr.MagicTrick;
+import org.xi.aquiz.gcj.c2014.qr.MinesweeperMaster;
+import org.xi.aquiz.gcj.cjb2008.ThePriceIsWrong;
 import org.xi.aquiz.gcj.cjb2008.TriangleTrilemma;
 import org.xi.aquiz.gcj.pc.pp.AlienNumbers;
 import org.xi.aquiz.gcj.pc.pp.AlwaysTurnLeft;
@@ -94,6 +99,31 @@ public class AQLauncher {
 		tt.aqRun(dataPath);
 	}
 
+	public static void PC_CJB2008_ThePriceIsWrong(String dataPath) {
+		ThePriceIsWrong pw = new ThePriceIsWrong();
+		pw.aqRun(dataPath);
+	}
+
+	public static void C2014_MagicTrick(String dataPath) {
+		MagicTrick mt = new MagicTrick();
+		mt.aqRun(dataPath);
+	}
+
+	public static void C2014_CookieClickerAlpha(String dataPath) {
+		CookieClickerAlpha cca = new CookieClickerAlpha();
+		cca.aqRun(dataPath);
+	}
+
+	public static void C2014_MinesweeperMaster(String dataPath) {
+		MinesweeperMaster mm = new MinesweeperMaster();
+		mm.aqRun(dataPath);
+	}
+
+	public static void C2014_DeceitfulWar(String dataPath) {
+		DeceitfulWar dw = new DeceitfulWar();
+		dw.aqRun(dataPath);
+	}
+
 	/**
 	 * Entry function of Application - main()
 	 * 
@@ -114,7 +144,10 @@ public class AQLauncher {
 		// Profiling
 		// Profiling(args[0]);
 
-		PC_CJB2008_TriangleTrilemma(args[0]);
+		// C2014_MagicTrick(args[0]);
+		// C2014_CookieClickerAlpha(args[0]);
+		C2014_MinesweeperMaster(args[0]);
+		// C2014_DeceitfulWar(args[0]);
 	}
 
 }
