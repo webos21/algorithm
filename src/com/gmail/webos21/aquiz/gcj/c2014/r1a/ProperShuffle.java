@@ -10,11 +10,11 @@ import java.io.IOException;
 /**
  * Google Code Jam - Contest2014 - Round1A
  * 
- * Problem B. Sample
+ * Problem C. Proper Shuffle
  * 
  * @author Cheolmin Jo (webos21@gmail.com)
  */
-public class SampleClassB {
+public class ProperShuffle {
 
 	/**
 	 * the game objects of cases
@@ -101,7 +101,7 @@ public class SampleClassB {
 	 *            the string array of the given arguments
 	 */
 	public static void main(String[] args) {
-		SampleClassB mainObject = new SampleClassB();
+		ProperShuffle mainObject = new ProperShuffle();
 		mainObject.aqRun(args[0]);
 	}
 

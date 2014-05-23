@@ -10,11 +10,11 @@ import java.io.IOException;
 /**
  * Google Code Jam - Contest2014 - Round1A
  * 
- * Problem C. Sample
+ * Problem B. Full Binary Tree
  * 
  * @author Cheolmin Jo (webos21@gmail.com)
  */
-public class SampleClassC {
+public class FullBinaryTree {
 
 	/**
 	 * the game objects of cases
@@ -101,7 +101,7 @@ public class SampleClassC {
 	 *            the string array of the given arguments
 	 */
 	public static void main(String[] args) {
-		SampleClassC mainObject = new SampleClassC();
+		FullBinaryTree mainObject = new FullBinaryTree();
 		mainObject.aqRun(args[0]);
 	}
 

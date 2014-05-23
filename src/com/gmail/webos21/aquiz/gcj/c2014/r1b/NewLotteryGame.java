@@ -10,11 +10,11 @@ import java.io.IOException;
 /**
  * Google Code Jam - Contest2014 - Round1B
  * 
- * Problem A. Sample
+ * Problem B. NewLotteryGame
  * 
  * @author Cheolmin Jo (webos21@gmail.com)
  */
-public class SampleClassA {
+public class NewLotteryGame {
 
 	/**
 	 * the game objects of cases
@@ -101,7 +101,7 @@ public class SampleClassA {
 	 *            the string array of the given arguments
 	 */
 	public static void main(String[] args) {
-		SampleClassA mainObject = new SampleClassA();
+		NewLotteryGame mainObject = new NewLotteryGame();
 		mainObject.aqRun(args[0]);
 	}
 
@@ -112,13 +112,13 @@ public class SampleClassA {
 		private int caseNo;
 		private String result;
 
-		double C, F, X;
+		int A, B, K;
 
-		public GameBean(int cn, String c, String f, String x) {
+		public GameBean(int cn, String a, String b, String k) {
 			this.caseNo = cn;
-			this.C = Double.parseDouble(c);
-			this.F = Double.parseDouble(f);
-			this.X = Double.parseDouble(x);
+			this.A = Integer.parseInt(a);
+			this.B = Integer.parseInt(b);
+			this.K = Integer.parseInt(k);
 		}
 
 		public String getResult() {
@@ -131,33 +131,29 @@ public class SampleClassA {
 
 			// the summary of Game-Case
 			sb.append("Case #").append(caseNo).append(": ");
-			sb.append(C).append(' ').append(F).append(' ').append(X)
+			sb.append(A).append(' ').append(B).append(' ').append(K)
 					.append('\n');
 
-			double prevFarmSec = C / 2.0;
-			double prevTotalSec = X / 2.0;
-			double curFarmSec = 0.0;
-			double curTotalSec = 0.0;
-			sb.append('\t').append(prevFarmSec).append(' ')
-					.append(prevTotalSec).append('\n');
-
-			int cnt = 1;
-			while (true) {
-				curFarmSec = prevFarmSec + C / (2.0 + cnt * F);
-				curTotalSec = prevFarmSec + X / (2.0 + cnt * F);
-
-				sb.append('\t').append(curFarmSec).append(' ')
-						.append(curTotalSec).append('\n');
-
-				if (prevTotalSec < curTotalSec) {
-					break;
-				} else {
-					prevFarmSec = curFarmSec;
-					prevTotalSec = curTotalSec;
-					cnt++;
+			long maxCases = 0;
+			if (K <= A && K <= B && (K != A && K != B)) {
+				// K <= ((A <= B) || (B <= A))
+				maxCases = K * K;
+				maxCases += ((A - K) * K);
+				maxCases += ((B - K) * K);
+				for (int i = K; i < A; i++) {
+					for (int j = K; j < B; j++) {
+						if ((i & j) < K) {
+							maxCases++;
+						}
+					}
 				}
+			} else {
+				long x = A;
+				long y = B;
+				maxCases = (x * y);
 			}
-			result = String.format("%.07f", prevTotalSec);
+
+			result = Long.toString(maxCases);
 			sb.append("\tResult : ").append(result).append('\n');
 
 			// print out the logs

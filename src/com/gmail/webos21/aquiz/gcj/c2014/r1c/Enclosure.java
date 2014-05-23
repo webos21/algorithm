@@ -1,4 +1,4 @@
-package com.gmail.webos21.aquiz.gcj.c2014.r1b;
+package com.gmail.webos21.aquiz.gcj.c2014.r1c;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -8,13 +8,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 /**
- * Google Code Jam - Contest2014 - Round1B
+ * Google Code Jam - Contest2014 - Round1C
  * 
- * Problem B. Sample
+ * Problem C. Enclosure
  * 
  * @author Cheolmin Jo (webos21@gmail.com)
  */
-public class SampleClassB {
+public class Enclosure {
 
 	/**
 	 * the game objects of cases
@@ -101,7 +101,7 @@ public class SampleClassB {
 	 *            the string array of the given arguments
 	 */
 	public static void main(String[] args) {
-		SampleClassB mainObject = new SampleClassB();
+		Enclosure mainObject = new Enclosure();
 		mainObject.aqRun(args[0]);
 	}
 

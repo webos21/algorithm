@@ -1,4 +1,4 @@
-package com.gmail.webos21.aquiz.gcj.c2014.r1a;
+package com.gmail.webos21.aquiz.gcj.c2014.r1b;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -8,13 +8,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 /**
- * Google Code Jam - Contest2014 - Round1A
+ * Google Code Jam - Contest2014 - Round1B
  * 
- * Problem D. Sample
+ * Problem C. TheBoredTSP
  * 
  * @author Cheolmin Jo (webos21@gmail.com)
  */
-public class SampleClassD {
+public class TheBoredTSP {
 
 	/**
 	 * the game objects of cases
@@ -101,7 +101,7 @@ public class SampleClassD {
 	 *            the string array of the given arguments
 	 */
 	public static void main(String[] args) {
-		SampleClassD mainObject = new SampleClassD();
+		TheBoredTSP mainObject = new TheBoredTSP();
 		mainObject.aqRun(args[0]);
 	}
 

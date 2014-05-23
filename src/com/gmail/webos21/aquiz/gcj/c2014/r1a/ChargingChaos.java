@@ -10,11 +10,11 @@ import java.io.IOException;
 /**
  * Google Code Jam - Contest2014 - Round1A
  * 
- * Problem A. Sample
+ * Problem A. Charging Chaos
  * 
  * @author Cheolmin Jo (webos21@gmail.com)
  */
-public class SampleClassA {
+public class ChargingChaos {
 
 	/**
 	 * the game objects of cases
@@ -101,7 +101,7 @@ public class SampleClassA {
 	 *            the string array of the given arguments
 	 */
 	public static void main(String[] args) {
-		SampleClassA mainObject = new SampleClassA();
+		ChargingChaos mainObject = new ChargingChaos();
 		mainObject.aqRun(args[0]);
 	}
 

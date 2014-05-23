@@ -10,11 +10,11 @@ import java.io.IOException;
 /**
  * Google Code Jam - Contest2014 - Round1B
  * 
- * Problem D. Sample
+ * Problem A. TheRepeater
  * 
  * @author Cheolmin Jo (webos21@gmail.com)
  */
-public class SampleClassD {
+public class TheRepeater {
 
 	/**
 	 * the game objects of cases
@@ -43,10 +43,13 @@ public class SampleClassD {
 		gameCases = new GameBean[setNum];
 		for (i = 0; setNum > 0; i++, setNum--) {
 			lstr = aqbr.readLine();
-			String[] m = lstr.split(" ");
-			if (m != null && m.length == 3) {
-				gameCases[i] = new GameBean((i + 1), m[0], m[1], m[2]);
+			int strings = Integer.parseInt(lstr);
+			String[] m = new String[strings];
+			for (int j = 0; j < strings; j++) {
+				lstr = aqbr.readLine();
+				m[j] = lstr;
 			}
+			gameCases[i] = new GameBean((i + 1), m);
 		}
 
 		// close the reader of input-data
@@ -101,7 +104,7 @@ public class SampleClassD {
 	 *            the string array of the given arguments
 	 */
 	public static void main(String[] args) {
-		SampleClassD mainObject = new SampleClassD();
+		TheRepeater mainObject = new TheRepeater();
 		mainObject.aqRun(args[0]);
 	}
 
@@ -112,13 +115,11 @@ public class SampleClassD {
 		private int caseNo;
 		private String result;
 
-		double C, F, X;
+		private String[] nStrings;
 
-		public GameBean(int cn, String c, String f, String x) {
+		public GameBean(int cn, String[] strs) {
 			this.caseNo = cn;
-			this.C = Double.parseDouble(c);
-			this.F = Double.parseDouble(f);
-			this.X = Double.parseDouble(x);
+			this.nStrings = strs;
 		}
 
 		public String getResult() {
@@ -129,35 +130,20 @@ public class SampleClassD {
 		public void run() {
 			StringBuilder sb = new StringBuilder();
 
+			int acts = 0;
+
 			// the summary of Game-Case
 			sb.append("Case #").append(caseNo).append(": ");
-			sb.append(C).append(' ').append(F).append(' ').append(X)
-					.append('\n');
-
-			double prevFarmSec = C / 2.0;
-			double prevTotalSec = X / 2.0;
-			double curFarmSec = 0.0;
-			double curTotalSec = 0.0;
-			sb.append('\t').append(prevFarmSec).append(' ')
-					.append(prevTotalSec).append('\n');
-
-			int cnt = 1;
-			while (true) {
-				curFarmSec = prevFarmSec + C / (2.0 + cnt * F);
-				curTotalSec = prevFarmSec + X / (2.0 + cnt * F);
-
-				sb.append('\t').append(curFarmSec).append(' ')
-						.append(curTotalSec).append('\n');
-
-				if (prevTotalSec < curTotalSec) {
-					break;
-				} else {
-					prevFarmSec = curFarmSec;
-					prevTotalSec = curTotalSec;
-					cnt++;
-				}
+			sb.append(nStrings.length).append('\n');
+			for (int i = 0; i < nStrings.length; i++) {
+				sb.append('\t').append(nStrings[i]).append('\n');
 			}
-			result = String.format("%.07f", prevTotalSec);
+
+			for (int i = 0; i < nStrings.length; i++) {
+				
+			}
+
+			result = "0";
 			sb.append("\tResult : ").append(result).append('\n');
 
 			// print out the logs
