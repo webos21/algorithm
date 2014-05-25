@@ -10,7 +10,7 @@ import java.io.IOException;
 /**
  * Google Code Jam - Contest2014 - Round1B
  * 
- * Problem B. NewLotteryGame
+ * Problem B. New Lottery Game
  * 
  * @author Cheolmin Jo (webos21@gmail.com)
  */
