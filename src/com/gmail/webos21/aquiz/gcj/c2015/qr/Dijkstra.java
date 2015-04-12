@@ -138,6 +138,7 @@ public class Dijkstra {
 			sb.append(srcString).append('\n');
 
 			boolean isPossible = false;
+			
 
 			result = (isPossible) ? "YES" : "NO";
 			sb.append("\tResult : ").append(result).append('\n');
